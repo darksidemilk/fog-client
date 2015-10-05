@@ -5,7 +5,6 @@ install:
   - nuget restore FOGService.sln
   - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner
 os:
-  - linux
   - osx
 script:
   - xbuild /p:Configuration=Release FOGService.sln
