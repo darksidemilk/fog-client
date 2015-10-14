@@ -18,14 +18,12 @@
  */
 
 using System;
-using FOG.Core;
-using FOG.Core.Data;
-using FOG.Core.Power;
-using FOG.Modules;
 using FOG.Modules.AutoLogOut;
-using FOG.Modules.DisplayManager;
 using FOG.Modules.PrinterManager;
 using Newtonsoft.Json;
+using Zazzles;
+using Zazzles.Data;
+using Zazzles.Modules;
 
 namespace FOG
 {
@@ -48,7 +46,7 @@ namespace FOG
             if (Settings.OS != Settings.OSType.Linux)
             {
                 Log.Entry("User Service", "Spawning waiter");
-                Power.SpawnUpdateWaiter(Settings.Location);
+                UpdateWaiterHelper.SpawnUpdateWaiter(Settings.Location);
             }
 
             Power.Updating = true;
@@ -69,7 +67,6 @@ namespace FOG
             return new AbstractModule[]
             {
                 new AutoLogOut(),
-                new DisplayManager(),
                 new DefaultPrinterManager()
             };
         }

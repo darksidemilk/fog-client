@@ -18,16 +18,21 @@
  */
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
-using FOG;
 using Microsoft.Deployment.WindowsInstaller;
 using Microsoft.Win32.TaskScheduler;
+using FOG;
+using Newtonsoft.Json.Linq;
 
 namespace SetupHelper
 {
     public class CustomActions
     {
+        private static string jsonFile = Path.Combine(
+            Environment.GetEnvironmentVariable("TEMP", EnvironmentVariableTarget.Machine),
+            "session.json");
         private static void DisplayMSIError(Session session, string msg)
         {
             var r = new Record();
@@ -36,16 +41,42 @@ namespace SetupHelper
         }
 
         [CustomAction]
+        public static ActionResult DumpConfig(Session session)
+        {
+            var properties = new string[] { "HTTPS", "USETRAY", "WEBADDRESS", "WEBROOT",
+                "ROOTLOG", "INSTALLDIR", "ProductVersion", "LIGHT" };
+            try
+            {
+                var json = new JObject();
+
+                foreach (var prop in properties)
+                    json[prop] = session[prop];
+
+                File.WriteAllText(jsonFile, json.ToString());
+                return ActionResult.Success;
+            }
+            catch (Exception ex)
+            {
+                DisplayMSIError(session, "Unable to store configuration: " + ex.Message);
+                return ActionResult.Failure;
+            }
+        }
+
+        [CustomAction]
         public static ActionResult InstallCert(Session session)
         {
             try
             {
-                return MonoHelper.PinServerCert(session["INSTALLLOCATION"]) ? ActionResult.Success : ActionResult.Failure;
+                var config = GetSettings();
+                if(GetValue("LIGHT", config).Equals("1"))
+                    return ActionResult.Success;
+
+                return GenericSetup.PinServerCert(GetValue("INSTALLLOCATION", config)) ? ActionResult.Success : ActionResult.Failure;
             }
             catch (Exception ex)
             {
                 DisplayMSIError(session, "Unable to install CA certificate: " + ex.Message);
-                return ActionResult.Failure;
+                return ActionResult.Success;
             }
         }
 
@@ -54,15 +85,19 @@ namespace SetupHelper
         {
             try
             {
-                MonoHelper.SaveSettings(
-                    session["HTTPS"],
-                    session["USETRAY"],
-                    session["WEBADDRESS"],
-                    session["WEBROOT"],
-                    session["ProductVersion"],
+                var config = GetSettings();
+                if (GetValue("LIGHT", config).Equals("1"))
+                    return ActionResult.Success;
+
+                GenericSetup.SaveSettings(
+                    GetValue("HTTPS", config),
+                    GetValue("USETRAY", config),
+                    GetValue("WEBADDRESS", config),
+                    GetValue("WEBROOT", config),
                     "FOG",
-                    session["INSTALLLOCATION"],
-                    session["ROOTLOG"]);
+                    GetValue("ROOTLOG", config),
+                    GetValue("INSTALLLOCATION", config),
+                    GetValue("ProductVersion", config));
 
                 return ActionResult.Success;
             }
@@ -79,7 +114,11 @@ namespace SetupHelper
         {
             try
             {
-                MonoHelper.UnpinServerCert();
+                var config = GetSettings();
+                if (GetValue("LIGHT", config).Equals("1"))
+                    return ActionResult.Success;
+
+                GenericSetup.UnpinServerCert();
             }
             catch (Exception ex)
             {
@@ -94,6 +133,10 @@ namespace SetupHelper
         {
             try
             {
+                var config = GetSettings();
+                if (GetValue("LIGHT", config).Equals("1"))
+                    return ActionResult.Success;
+
                 var cert = new X509Certificate2(session.CustomActionData["CAFile"]);
                 var store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
                 store.Open(OpenFlags.ReadWrite);
@@ -116,6 +159,10 @@ namespace SetupHelper
             var cert = new X509Certificate2();
             try
             {
+                var config = GetSettings();
+                if (GetValue("LIGHT", config).Equals("1"))
+                    return ActionResult.Success;
+
                 X509Certificate2 CAroot = null;
                 var store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
                 store.Open(OpenFlags.ReadOnly);
@@ -139,6 +186,7 @@ namespace SetupHelper
 
             try
             {
+
                 var store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
                 store.Open(OpenFlags.ReadWrite);
                 store.Remove(cert);
@@ -159,6 +207,10 @@ namespace SetupHelper
         {
             try
             {
+                var config = GetSettings();
+                if (GetValue("LIGHT", config).Equals("1"))
+                    return ActionResult.Success;
+
                 var taskService = new TaskService();
                 var existingTasks = taskService.GetFolder("FOG").AllTasks.ToList();
 
@@ -174,6 +226,17 @@ namespace SetupHelper
             }
 
             return ActionResult.Success;
+        }
+
+        private static JObject GetSettings()
+        {
+            return JObject.Parse(File.ReadAllText(jsonFile));
+        }
+
+        private static string GetValue(string key, JObject config)
+        {
+            var value = config.GetValue(key);
+            return string.IsNullOrEmpty(value.ToString().Trim()) ? string.Empty : value.ToString().Trim();
         }
     }
 }

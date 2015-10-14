@@ -52,17 +52,16 @@
     <Reference Include="Microsoft.Deployment.WindowsInstaller">
       <Private>True</Private>
     </Reference>
+    <Reference Include="Zazzles, Version=1.0.5764.34033, Culture=neutral, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\libs\Zazzles.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CustomAction.cs" />
+    <Compile Include="GenericSetup.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Content Include="CustomAction.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\MonoHelper\MonoHelper.csproj">
-      <Project>{c83c7025-7fd0-4419-b848-3b42d9ded51f}</Project>
-      <Name>MonoHelper</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

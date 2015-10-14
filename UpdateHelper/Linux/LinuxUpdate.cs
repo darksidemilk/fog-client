@@ -17,9 +17,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-using System.IO;
-using FOG.Core;
-using FOG.Core.Middleware;
+
+using Zazzles;
+using Zazzles.Modules.Updater;
 
 namespace FOG
 {
@@ -29,8 +29,8 @@ namespace FOG
 
         public void ApplyUpdate()
         {
-            ProcessHandler.Run("/bin/bash",
-                $"{Path.Combine(Settings.Location, "core.sh")} {Settings.Get("Server")} 0 0");
+            ProcessHandler.RunClientEXE("UnixInstaller.exe", 
+                $"{Settings.Get("Server")} {Settings.Get("Tray")} {Settings.Get("Company")} {Settings.Get("RootLog")} {Settings.Get("HTTPS")}");
         }
 
         public void StartService()

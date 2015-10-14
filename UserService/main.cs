@@ -18,9 +18,10 @@
  */
 
 using System;
+using System.Diagnostics;
 using System.IO;
-using FOG.Core;
-using FOG.Core.Power;
+using System.Threading;
+using Zazzles;
 
 namespace FOG
 {
@@ -34,11 +35,17 @@ namespace FOG
 
         public static void Main(string[] args)
         {
-            //Thread.Sleep(7*1000);
-            //Initialize everything
             Log.FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "fog_user.log");
 
             AppDomain.CurrentDomain.UnhandledException += Log.UnhandledException;
+
+            // Wait for the main service to spawn
+            while (Process.GetProcessesByName("FOGService").Length == 0)
+            {
+                Thread.Sleep(500);
+            }
+            Thread.Sleep(1000);
+
             Eager.Initalize();
 
             Log.Entry(LogName, "Initializing");
@@ -46,7 +53,7 @@ namespace FOG
             if (File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "updating.info")))
             {
                 Log.Entry(LogName, "Update.info found, exiting program");
-                Power.SpawnUpdateWaiter(Settings.Location);
+                UpdateWaiterHelper.SpawnUpdateWaiter(Settings.Location);
                 Environment.Exit(0);
             }
 
